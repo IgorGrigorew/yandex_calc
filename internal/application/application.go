@@ -19,10 +19,24 @@ func StartServer() {
 
 	fmt.Println("start server port:8080")
 
-	http.HandleFunc("/api/v1/calculate", MidlewareLog(CalcHandler))
+	http.HandleFunc("/api/v1/calculate", RecoveryMiddleware(MidlewareLog(CalcHandler)))
 
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+if err != nil{
 
+}
+}
+
+func RecoveryMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Восстановление после паники: %v", err)
+				http.Error(w, "Внутренняя ошибка сервера", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
 
 //записываем лог
